@@ -1,0 +1,120 @@
+settings
+{
+	modes
+	{
+		Deathmatch
+		{
+			enabled maps
+			{
+				Workshop Island Night
+			}
+		}
+
+		General
+		{
+			Game Mode Start: Immediately
+			Limit Roles: 2 Of Each Role Per Team
+		}
+	}
+
+	heroes
+	{
+		General
+		{
+			Jump Vertical Speed: 800%
+			Movement Gravity: 25%
+		}
+	}
+}
+
+variables
+{
+	global:
+		1: Grid
+		4: Itt1
+		5: Itt2
+
+	player:
+		1: NearestGrid
+}
+
+rule("Rule 1")
+{
+	event
+	{
+		Ongoing - Global;
+	}
+
+	conditions
+	{
+		Is Assembling Heroes == True;
+	}
+
+	actions
+	{
+		Set Match Time(0);
+	}
+}
+
+rule("Global Initialization")
+{
+	event
+	{
+		Ongoing - Global;
+	}
+
+	conditions
+	{
+		Is Game In Progress == True;
+		Is Assembling Heroes == False;
+	}
+
+	actions
+	{
+		Disable Built-In Game Mode Announcer;
+		Disable Built-In Game Mode Music;
+		Disable Built-In Game Mode Completion;
+		Pause Match Time;
+		Set Match Time(0);
+		Global.Grid = Empty Array;
+		"Create a grid to figure out where the player is"
+		For Global Variable(Itt1, 0, 40, 4);
+			For Global Variable(Itt2, 0, 40, 4);
+				Modify Global Variable(Grid, Append To Array, Vector(Global.Itt1 - 18, 0, Global.Itt2 - 18));
+			End;
+		End;
+	}
+}
+
+rule("Global Hud")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		All;
+	}
+
+	actions
+	{
+		Create HUD Text(All Players(All Teams), Custom String("Closest Grid: {0}", Index Of Array Value(Global.Grid,
+			Event Player.NearestGrid)), Null, Null, Left, 0, White, White, White, Visible To and String, Default Visibility);
+	}
+}
+
+rule("Track which grid player is in")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		All;
+	}
+
+	actions
+	{
+		Event Player.NearestGrid = First Of(Sorted Array(Global.Grid, Distance Between(Position Of(Event Player), Current Array Element)));
+		Wait(0.250, Ignore Condition);
+		Loop;
+	}
+}
