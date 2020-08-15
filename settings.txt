@@ -38,7 +38,7 @@ variables
 		1: NearestGrid
 }
 
-rule("Rule 1")
+rule("Remove assemble heroes time")
 {
 	event
 	{
@@ -116,5 +116,25 @@ rule("Track which grid player is in")
 		Event Player.NearestGrid = First Of(Sorted Array(Global.Grid, Distance Between(Position Of(Event Player), Current Array Element)));
 		Wait(0.250, Ignore Condition);
 		Loop;
+	}
+}
+
+rule("Place a ship (temporary)")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		All;
+	}
+
+	conditions
+	{
+		Is Button Held(Event Player, Crouch) == True;
+	}
+
+	actions
+	{
+		Create Effect(All Players(All Teams), Sphere, Red, Event Player.NearestGrid, 1, None);
 	}
 }
