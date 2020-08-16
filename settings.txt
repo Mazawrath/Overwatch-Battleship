@@ -24,6 +24,7 @@ variables
 		0: GamePhase
 		1: Grid
 		2: ShipNames
+		3: ShipLengths
 		4: Itt1
 		5: Itt2
 
@@ -80,6 +81,7 @@ rule("Global Initialization")
 		End;
 		Global.ShipNames = Array(Custom String("Aircraft Carrier"), Custom String("Battleship"), Custom String("Cruiser"), Custom String(
 			"Submarine"), Custom String("Destroyer"));
+		Global.ShipLengths = Array(5, 4, 3, 3, 2);
 	}
 }
 
@@ -115,13 +117,41 @@ rule("Global Hud")
 		All;
 	}
 
+	conditions
+	{
+		Is Game In Progress == True;
+	}
+
+	actions
+	{
+		Create HUD Text(All Players(All Teams), Null, Custom String("Battleship Beta v0.0.1. Developed by u/Mazawrath."), Null, Left, 0,
+			White, Sky Blue, White, None, Visible Always);
+		Create HUD Text(All Players(All Teams), Null, Null, Custom String("Ships:"), Right, 0, White, White, White, Visible To and String,
+			Visible Always);
+		"Display each ship and its length"
+		For Global Variable(Itt1, -1, Count Of(Global.ShipNames) - 1, 1);
+			Create HUD Text(All Players(All Teams), Null, Null, Custom String("{0} ({1} long)", Global.ShipNames[Global.Itt1],
+				Global.ShipLengths[Global.Itt1], Global.Itt1), Right, Global.Itt1 + 1, White, White, Orange, None, Visible Always);
+		End;
+	}
+}
+
+rule("Player HUD")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		All;
+	}
+
 	actions
 	{
 		Create HUD Text(All Players(All Teams), Custom String("Closest Grid: {0}", Index Of Array Value(Global.Grid,
 			Event Player.NearestGrid)), Null, Null, Left, 0, White, White, White, Visible To and String, Default Visibility);
 		Create HUD Text(Filtered Array(All Players(All Teams), Global.GamePhase == 1), Custom String("Place your: {0}",
 			Global.ShipNames[Event Player.CurrentShipPlacing]), Null, Null, Left, 0, White, White, White, Visible To and String,
-			Default Visibility);
+			Visible Never);
 	}
 }
 
