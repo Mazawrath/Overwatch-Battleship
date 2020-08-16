@@ -16,15 +16,6 @@ settings
 			Limit Roles: 2 Of Each Role Per Team
 		}
 	}
-
-	heroes
-	{
-		General
-		{
-			Jump Vertical Speed: 800%
-			Movement Gravity: 25%
-		}
-	}
 }
 
 variables
