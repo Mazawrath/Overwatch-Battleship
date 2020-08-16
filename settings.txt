@@ -2,6 +2,8 @@ settings
 {
 	lobby
 	{
+		Allow Players Who Are In Queue: Yes
+		Match Voice Chat: Enabled
 		Max FFA Players: 2
 		Max Spectators: 6
 	}
@@ -19,7 +21,17 @@ settings
 		General
 		{
 			Game Mode Start: Immediately
-			Limit Roles: 2 Of Each Role Per Team
+			Hero Limit: Off
+		}
+	}
+
+	heroes
+	{
+		General
+		{
+			No Ammunition Requirement: On
+			Ultimate Generation - Combat: 0%
+			Ultimate Generation - Passive: 0%
 		}
 	}
 }
@@ -35,17 +47,20 @@ variables
 		5: Itt2
 
 	player:
-		1: NearestGrid
+		0: NearestGridRowCol
+		1: NearestGridCord
 		2: ShowShips
 		3: PlayerHero
 		9: ShipLocations
 		10: CurrentShipPlacing
 		11: LastShipPinPlaced
+		12: ShipPinValid
 }
 
 subroutines
 {
 	0: CheckValidShipPlacement
+	1: PlaceShipPin
 }
 
 rule("Remove assemble heroes time")
@@ -165,7 +180,7 @@ rule("Player HUD")
 	actions
 	{
 		Create HUD Text(All Players(All Teams), Custom String("Closest Grid: {0}", Index Of Array Value(Global.Grid,
-			Event Player.NearestGrid)), Null, Null, Left, 0, White, White, White, Visible To and String, Default Visibility);
+			Event Player.NearestGridCord)), Null, Null, Left, 0, White, White, White, Visible To and String, Default Visibility);
 		Create HUD Text(Filtered Array(All Players(All Teams), Global.GamePhase == 1), Custom String("Place your: {0}",
 			Global.ShipNames[Event Player.CurrentShipPlacing]), Null, Null, Left, 0, White, White, White, Visible To and String,
 			Visible Never);
@@ -183,7 +198,9 @@ rule("Track which grid player is in")
 
 	actions
 	{
-		Event Player.NearestGrid = First Of(Sorted Array(Global.Grid, Distance Between(Position Of(Event Player), Current Array Element)));
+		Event Player.NearestGridCord = First Of(Sorted Array(Global.Grid, Distance Between(Position Of(Event Player),
+			Current Array Element)));
+		Event Player.NearestGridRowCol = Index Of Array Value(Global.Grid, Event Player.NearestGridCord);
 		Wait(0.250, Ignore Condition);
 		Loop;
 	}
@@ -207,14 +224,16 @@ rule("Place a ship (temporary)")
 	actions
 	{
 		"Check if there is a ship already there"
-		If(Event Player.ShipLocations[Index Of Array Value(Global.Grid, Event Player.NearestGrid)] == 0);
+		If(Event Player.ShipLocations[Index Of Array Value(Global.Grid, Event Player.NearestGridCord)] == 0);
 			If(Event Player.LastShipPinPlaced == -1);
-				"Create ship for player"
-				Create Effect(Filtered Array(Event Player, Event Player.ShowShips), Sphere, Sky Blue, Event Player.NearestGrid, 1, Visible To);
-				"When a player places a ship, place a number in their ShipLocations to symbolize it"
-				Event Player.ShipLocations[Index Of Array Value(Global.Grid, Event Player.NearestGrid)] = 1;
+				Call Subroutine(PlaceShipPin);
 			Else;
 				Call Subroutine(CheckValidShipPlacement);
+				If(Event Player.ShipPinValid);
+					Call Subroutine(PlaceShipPin);
+				Else;
+					Big Message(All Players(All Teams), Custom String("Invalid spot!"));
+				End;
 			End;
 		Else;
 			Big Message(All Players(All Teams), Custom String("You have already placed a ship here!"));
@@ -306,6 +325,33 @@ rule("Check Valid Ship Placement")
 
 	actions
 	{
-		If(Event Player.LastShipPinPlaced == 0);
+		Event Player.ShipPinValid = False;
+		If(Event Player.LastShipPinPlaced + 1 == Event Player.NearestGridRowCol);
+			Event Player.ShipPinValid = True;
+		Else If(Event Player.LastShipPinPlaced - 1 == Event Player.NearestGridRowCol);
+			Event Player.ShipPinValid = True;
+		Else If(Event Player.LastShipPinPlaced + 10 == Event Player.NearestGridRowCol);
+			Event Player.ShipPinValid = True;
+		Else If(Event Player.LastShipPinPlaced - 10 == Event Player.NearestGridRowCol);
+			Event Player.ShipPinValid = True;
+		End;
+	}
+}
+
+rule("Place Ship Pin")
+{
+	event
+	{
+		Subroutine;
+		PlaceShipPin;
+	}
+
+	actions
+	{
+		"Create ship for player"
+		Create Effect(Filtered Array(Event Player, Event Player.ShowShips), Sphere, Sky Blue, Event Player.NearestGridCord, 1, Visible To);
+		"When a player places a ship, place a number in their ShipLocations to symbolize it"
+		Event Player.ShipLocations[Index Of Array Value(Global.Grid, Event Player.NearestGridCord)] = 1;
+		Event Player.LastShipPinPlaced = Event Player.NearestGridRowCol;
 	}
 }
