@@ -32,12 +32,14 @@ variables
 	global:
 		0: GamePhase
 		1: Grid
+		2: ShipNames
 		4: Itt1
 		5: Itt2
 
 	player:
 		1: NearestGrid
 		9: ShipLocations
+		10: CurrentShipPlacing
 }
 
 rule("Remove assemble heroes time")
@@ -85,6 +87,8 @@ rule("Global Initialization")
 				Modify Global Variable(Grid, Append To Array, Vector(Global.Itt1 - 18, 0, Global.Itt2 - 18));
 			End;
 		End;
+		Global.ShipNames = Array(Custom String("Aircraft Carrier"), Custom String("Battleship"), Custom String("Cruiser"), Custom String(
+			"Submarine"), Custom String("Destroyer"));
 	}
 }
 
@@ -124,6 +128,9 @@ rule("Global Hud")
 	{
 		Create HUD Text(All Players(All Teams), Custom String("Closest Grid: {0}", Index Of Array Value(Global.Grid,
 			Event Player.NearestGrid)), Null, Null, Left, 0, White, White, White, Visible To and String, Default Visibility);
+		Create HUD Text(Filtered Array(All Players(All Teams), Global.GamePhase == 1), Custom String("Place your: {0}",
+			Global.ShipNames[Event Player.CurrentShipPlacing]), Null, Null, Left, 0, White, White, White, Visible To and String,
+			Default Visibility);
 	}
 }
 
