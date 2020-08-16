@@ -30,12 +30,14 @@ settings
 variables
 {
 	global:
+		0: GamePhase
 		1: Grid
 		4: Itt1
 		5: Itt2
 
 	player:
 		1: NearestGrid
+		9: ShipLocations
 }
 
 rule("Remove assemble heroes time")
@@ -86,6 +88,29 @@ rule("Global Initialization")
 	}
 }
 
+rule("Player Initialization")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		All;
+	}
+
+	actions
+	{
+		Set Status(Event Player, Null, Invincible, 9999);
+		Set Status(Event Player, Null, Phased Out, 9999);
+		Event Player.ShipLocations = Empty Array;
+		"Create a grid for the player ships"
+		For Global Variable(Itt1, 0, 40, 4);
+			For Global Variable(Itt2, 0, 40, 4);
+				Modify Player Variable(Event Player, ShipLocations, Append To Array, 0);
+			End;
+		End;
+	}
+}
+
 rule("Global Hud")
 {
 	event
@@ -131,10 +156,42 @@ rule("Place a ship (temporary)")
 	conditions
 	{
 		Is Button Held(Event Player, Crouch) == True;
+		disabled Global.GamePhase == 1;
 	}
 
 	actions
 	{
-		Create Effect(All Players(All Teams), Sphere, Red, Event Player.NearestGrid, 1, None);
+		"Check if there is a ship already there"
+		If(Event Player.ShipLocations[Index Of Array Value(Global.Grid, Event Player.NearestGrid)] == 0);
+			Create Effect(All Players(All Teams), Sphere, Sky Blue, Event Player.NearestGrid, 1, None);
+			"When a player places a ship, place a number in their ShipLocations to symbolize it"
+			Event Player.ShipLocations[Index Of Array Value(Global.Grid, Event Player.NearestGrid)] = 1;
+		Else;
+			Big Message(All Players(All Teams), Custom String("You have already placed a ship here!"));
+		End;
+	}
+}
+
+rule("Activate game")
+{
+	event
+	{
+		Ongoing - Global;
+	}
+
+	conditions
+	{
+		Is Game In Progress == True;
+		Number of Players(All Teams) > 1;
+	}
+
+	actions
+	{
+		Big Message(All Players(All Teams), Custom String("Starting game in 5 seconds!"));
+		Wait(5, Ignore Condition);
+		Global.GamePhase = 1;
+		Big Message(All Players(All Teams), Custom String("Place your ships!"));
+		"Set everyone invisible so you can't see where ships are placed."
+		Set Invisible(All Players(All Teams), All);
 	}
 }
