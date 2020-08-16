@@ -256,3 +256,24 @@ rule("Activate game")
 		Small Message(All Players(All Teams), Custom String("Setting hero to Zenyatta to disable footsteps."));
 	}
 }
+
+rule("Track hero player selected")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		All;
+	}
+
+	conditions
+	{
+		Is Game In Progress == True;
+		Has Spawned(Event Player) == True;
+	}
+
+	actions
+	{
+		Event Player.PlayerHero = Hero Of(Event Player);
+	}
+}
