@@ -30,6 +30,8 @@ variables
 
 	player:
 		1: NearestGrid
+		2: ShowShips
+		3: PlayerHero
 		9: ShipLocations
 		10: CurrentShipPlacing
 }
@@ -48,6 +50,12 @@ rule("Remove assemble heroes time")
 
 	actions
 	{
+		Disable Built-In Game Mode Announcer;
+		Disable Built-In Game Mode Music;
+		Disable Built-In Game Mode Completion;
+		Set Match Time(0);
+		Wait(0.250, Ignore Condition);
+		Pause Match Time;
 		Set Match Time(0);
 	}
 }
@@ -61,17 +69,12 @@ rule("Global Initialization")
 
 	conditions
 	{
-		Is Game In Progress == True;
-		Is Assembling Heroes == False;
+		disabled Is Game In Progress == True;
+		disabled Is Assembling Heroes == False;
 	}
 
 	actions
 	{
-		Disable Built-In Game Mode Announcer;
-		Disable Built-In Game Mode Music;
-		Disable Built-In Game Mode Completion;
-		Pause Match Time;
-		Set Match Time(0);
 		Global.Grid = Empty Array;
 		"Create a grid to figure out where the player is"
 		For Global Variable(Itt1, 0, 40, 4);
@@ -105,6 +108,7 @@ rule("Player Initialization")
 				Modify Player Variable(Event Player, ShipLocations, Append To Array, 0);
 			End;
 		End;
+		Event Player.ShowShips = True;
 	}
 }
 
@@ -191,11 +195,36 @@ rule("Place a ship (temporary)")
 	{
 		"Check if there is a ship already there"
 		If(Event Player.ShipLocations[Index Of Array Value(Global.Grid, Event Player.NearestGrid)] == 0);
-			Create Effect(All Players(All Teams), Sphere, Sky Blue, Event Player.NearestGrid, 1, None);
+			"Create ship for player"
+			Create Effect(Filtered Array(Event Player, Event Player.ShowShips), Sphere, Sky Blue, Event Player.NearestGrid, 1, Visible To);
 			"When a player places a ship, place a number in their ShipLocations to symbolize it"
 			Event Player.ShipLocations[Index Of Array Value(Global.Grid, Event Player.NearestGrid)] = 1;
 		Else;
 			Big Message(All Players(All Teams), Custom String("You have already placed a ship here!"));
+		End;
+	}
+}
+
+rule("Toggle ship visibility")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		All;
+	}
+
+	conditions
+	{
+		Is Button Held(Event Player, Interact) == True;
+	}
+
+	actions
+	{
+		If(Event Player.ShowShips);
+			Event Player.ShowShips = False;
+		Else;
+			Event Player.ShowShips = True;
 		End;
 	}
 }
@@ -219,7 +248,11 @@ rule("Activate game")
 		Wait(5, Ignore Condition);
 		Global.GamePhase = 1;
 		Big Message(All Players(All Teams), Custom String("Place your ships!"));
+		Teleport(All Players(All Teams), Vector(0, 10, 0));
 		"Set everyone invisible so you can't see where ships are placed."
 		Set Invisible(All Players(All Teams), All);
+		Start Forcing Player To Be Hero(All Players(All Teams), Hero(Zenyatta));
+		Wait(0.250, Ignore Condition);
+		Small Message(All Players(All Teams), Custom String("Setting hero to Zenyatta to disable footsteps."));
 	}
 }
