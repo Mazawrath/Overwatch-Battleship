@@ -1,5 +1,11 @@
 settings
 {
+	lobby
+	{
+		Max FFA Players: 2
+		Max Spectators: 6
+	}
+
 	modes
 	{
 		Deathmatch
@@ -34,6 +40,12 @@ variables
 		3: PlayerHero
 		9: ShipLocations
 		10: CurrentShipPlacing
+		11: LastShipPinPlaced
+}
+
+subroutines
+{
+	0: CheckValidShipPlacement
 }
 
 rule("Remove assemble heroes time")
@@ -109,6 +121,7 @@ rule("Player Initialization")
 			End;
 		End;
 		Event Player.ShowShips = True;
+		Event Player.LastShipPinPlaced = -1;
 	}
 }
 
@@ -195,12 +208,17 @@ rule("Place a ship (temporary)")
 	{
 		"Check if there is a ship already there"
 		If(Event Player.ShipLocations[Index Of Array Value(Global.Grid, Event Player.NearestGrid)] == 0);
-			"Create ship for player"
-			Create Effect(Filtered Array(Event Player, Event Player.ShowShips), Sphere, Sky Blue, Event Player.NearestGrid, 1, Visible To);
-			"When a player places a ship, place a number in their ShipLocations to symbolize it"
-			Event Player.ShipLocations[Index Of Array Value(Global.Grid, Event Player.NearestGrid)] = 1;
+			If(Event Player.LastShipPinPlaced == -1);
+				"Create ship for player"
+				Create Effect(Filtered Array(Event Player, Event Player.ShowShips), Sphere, Sky Blue, Event Player.NearestGrid, 1, Visible To);
+				"When a player places a ship, place a number in their ShipLocations to symbolize it"
+				Event Player.ShipLocations[Index Of Array Value(Global.Grid, Event Player.NearestGrid)] = 1;
+			Else;
+				Call Subroutine(CheckValidShipPlacement);
+			End;
 		Else;
 			Big Message(All Players(All Teams), Custom String("You have already placed a ship here!"));
+		End;
 		End;
 	}
 }
@@ -275,5 +293,19 @@ rule("Track hero player selected")
 	actions
 	{
 		Event Player.PlayerHero = Hero Of(Event Player);
+	}
+}
+
+rule("Check Valid Ship Placement")
+{
+	event
+	{
+		Subroutine;
+		CheckValidShipPlacement;
+	}
+
+	actions
+	{
+		If(Event Player.LastShipPinPlaced == 0);
 	}
 }
