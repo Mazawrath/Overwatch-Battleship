@@ -55,6 +55,9 @@ variables
 		10: CurrentShipPlacing
 		11: LastShipPinPlaced
 		12: ShipPinValid
+		13: LastShipPinPlacedEntity
+		14: DirectionPlacingShip
+		16: Itterator
 }
 
 subroutines
@@ -225,11 +228,18 @@ rule("Place a ship (temporary)")
 	{
 		"Check if there is a ship already there"
 		If(Event Player.ShipLocations[Index Of Array Value(Global.Grid, Event Player.NearestGridCord)] == 0);
+			"Check if you're placing a ship pin for the first time"
 			If(Event Player.LastShipPinPlaced == -1);
 				Call Subroutine(PlaceShipPin);
+				Event Player.LastShipPinPlaced = Event Player.NearestGridRowCol;
+			"First ship pin placed, check the direction and then check that each pin is valid"
 			Else;
 				Call Subroutine(CheckValidShipPlacement);
+				"The 2nd spot is valid, now check each grid after to see if it is valid"
 				If(Event Player.ShipPinValid);
+					Small Message(All Players(All Teams), Custom String("Placing ship in direction"));
+					For Player Variable(Event Player, Itterator, 2, Global.ShipLengths[Event Player.CurrentShipPlacing], 1);
+					End;
 					Call Subroutine(PlaceShipPin);
 				Else;
 					Big Message(All Players(All Teams), Custom String("Invalid spot!"));
@@ -238,7 +248,7 @@ rule("Place a ship (temporary)")
 		Else;
 			Big Message(All Players(All Teams), Custom String("You have already placed a ship here!"));
 		End;
-		End;
+		If(Event Player.ShipLocations[Event Player.NearestGridRowCol + Event Player.DirectionPlacingShip] > 0);
 	}
 }
 
@@ -326,15 +336,22 @@ rule("Check Valid Ship Placement")
 	actions
 	{
 		Event Player.ShipPinValid = False;
+		"Check if there is a ship already there"
+		disabled If(Event Player.ShipLocations[Index Of Array Value(Global.Grid, Event Player.NearestGridCord)] == 0);
 		If(Event Player.LastShipPinPlaced + 1 == Event Player.NearestGridRowCol);
+			Event Player.NearestGridRowCol = 1;
 			Event Player.ShipPinValid = True;
 		Else If(Event Player.LastShipPinPlaced - 1 == Event Player.NearestGridRowCol);
+			Event Player.NearestGridRowCol = -1;
 			Event Player.ShipPinValid = True;
 		Else If(Event Player.LastShipPinPlaced + 10 == Event Player.NearestGridRowCol);
+			Event Player.NearestGridRowCol = 3;
 			Event Player.ShipPinValid = True;
 		Else If(Event Player.LastShipPinPlaced - 10 == Event Player.NearestGridRowCol);
+			Event Player.NearestGridRowCol = 4;
 			Event Player.ShipPinValid = True;
 		End;
+		disabled End;
 	}
 }
 
@@ -350,8 +367,8 @@ rule("Place Ship Pin")
 	{
 		"Create ship for player"
 		Create Effect(Filtered Array(Event Player, Event Player.ShowShips), Sphere, Sky Blue, Event Player.NearestGridCord, 1, Visible To);
+		Event Player.LastShipPinPlacedEntity = Last Created Entity;
 		"When a player places a ship, place a number in their ShipLocations to symbolize it"
 		Event Player.ShipLocations[Index Of Array Value(Global.Grid, Event Player.NearestGridCord)] = 1;
-		Event Player.LastShipPinPlaced = Event Player.NearestGridRowCol;
 	}
 }
